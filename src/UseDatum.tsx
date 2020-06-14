@@ -1,8 +1,8 @@
 // Copyright (c) 2020 Glenn R. Engel
 // SPDX-License-Identifier: ISC
 // https://opensource.org/licenses/ISC
-import { useReducer, useEffect } from 'react'
-import deepequal from 'fast-deep-equal/es6/react'
+import { useReducer, useEffect } from 'react';
+import deepequal from 'fast-deep-equal/es6/react';
 
 /**
  * Provide a wrapper for a value which can be accessed from either a
@@ -45,27 +45,27 @@ import deepequal from 'fast-deep-equal/es6/react'
  */
 export function UseDatum<T>(
   initialValue: T,
-  onChange?: (prev: T, next: T) => void
+  onChange?: (current: T, prior: T) => void
 ) {
   const callbacks: {
-    [key: string]: () => void
-  } = {}
+    [key: string]: () => void;
+  } = {};
   const state = {
     value: initialValue,
     subscriberCount: 0,
-  }
+  };
 
   const isObject = (val: any) => {
     return (
       val != null && typeof val === 'object' && Array.isArray(val) === false
-    )
-  }
+    );
+  };
 
   /**
    * @brief Get the current value.
    * @return The current value.
    */
-  const getDatum = () => state.value
+  const getDatum = () => state.value;
 
   /**
    * @brief Update datum with a new value.
@@ -73,46 +73,46 @@ export function UseDatum<T>(
    * @param force If true, skip equality checks as force an update.
    */
   const setDatum = (newValue: T, force = false) => {
-    let changed = force || newValue !== state.value
+    let changed = force || newValue !== state.value;
     if (!changed && isObject(newValue)) {
       // compare object contents for equality
-      changed = !deepequal(newValue, state.value)
+      changed = !deepequal(newValue, state.value);
     }
     if (changed) {
-      const prior = state.value
-      state.value = newValue
+      const prior = state.value;
+      state.value = newValue;
       if (onChange) {
-        onChange(prior, newValue)
+        onChange(newValue, prior);
       }
       for (const key in callbacks) {
-        callbacks[key]()
+        callbacks[key]();
       }
     }
-  }
+  };
 
   /**
    * @brief Returns a stateful value, and a function to update it.
    */
   const useDatum = () => {
-    const [, forceRender] = useReducer((s) => s + 1, 0)
+    const [, forceRender] = useReducer((s) => s + 1, 0);
 
     useEffect(() => {
-      const id = String(state.subscriberCount++)
-      callbacks[id] = forceRender
+      const id = String(state.subscriberCount++);
+      callbacks[id] = forceRender;
       return () => {
-        delete callbacks[id]
-      }
-    }, [forceRender])
+        delete callbacks[id];
+      };
+    }, [forceRender]);
 
     // The useState equivalent
-    return [state.value, setDatum] as [T, typeof setDatum]
-  }
+    return [state.value, setDatum] as [T, typeof setDatum];
+  };
 
   // Global context helpers
   return [useDatum, setDatum, getDatum] as [
     typeof useDatum,
     typeof setDatum,
     typeof getDatum
-  ]
+  ];
 }
-export default UseDatum
+export default UseDatum;
