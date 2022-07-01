@@ -1,7 +1,7 @@
 // Copyright (c) 2020 Glenn R. Engel
 // SPDX-License-Identifier: ISC
 // https://opensource.org/licenses/ISC
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useMemo } from 'react';
 import deepequal from 'fast-deep-equal/es6/react';
 
 /**
@@ -38,6 +38,7 @@ import deepequal from 'fast-deep-equal/es6/react';
  *
  * @param initialValue The initial value.
  * @param onChange An optional function called if the value changes.
+ * @param opts Optional configuration of UseDatum behavior.  Set shallow:true for shallow compare.
  * @return [ useDatum, setDatum, getDatum ]
  *  useDatum - A traditional useState hook equivalent.
  *  setDatum - A function which can be used to set the value from any context.
@@ -45,7 +46,8 @@ import deepequal from 'fast-deep-equal/es6/react';
  */
 export function UseDatum<T>(
   initialValue: T,
-  onChange?: (current: T, prior: T) => void
+  onChange?: (current: T, prior: T) => void,
+  opts?: { shallow?: boolean; trace?: string }
 ) {
   const callbacks: {
     [key: string]: () => void;
@@ -53,12 +55,16 @@ export function UseDatum<T>(
   const state = {
     value: initialValue,
     subscriberCount: 0,
+    shallow: opts && opts.shallow ? Boolean(opts.shallow) : false,
   };
+  const trace = opts && opts.trace;
+
+  if (trace) {
+    console.log(`UseDatum: Creating for ${trace}`);
+  }
 
   const isObject = (val: any) => {
-    return (
-      val != null && typeof val === 'object' && Array.isArray(val) === false
-    );
+    return val != null && typeof val === 'object';
   };
 
   /**
@@ -70,13 +76,24 @@ export function UseDatum<T>(
   /**
    * @brief Update datum with a new value.
    * @param newValue The new value to apply.
-   * @param force If true, skip equality checks as force an update.
+   * @param force If true, skip equality checks and force an update.
    */
   const setDatum = (newValue: T, force = false) => {
-    let changed = force || newValue !== state.value;
-    if (!changed && isObject(newValue)) {
-      // compare object contents for equality
-      changed = !deepequal(newValue, state.value);
+    let changed = force;
+    if (!changed) {
+      if (state.shallow || !isObject(newValue)) {
+        changed = newValue !== state.value;
+      } else {
+        // compare object contents for equality
+        changed = !deepequal(newValue, state.value);
+      }
+    }
+    if (trace) {
+      console.log(
+        `UseDatum: Setting ${trace}=${newValue} changed=${changed} #callbacks=${
+          Object.keys(callbacks).length
+        }`
+      );
     }
     if (changed) {
       const prior = state.value;
@@ -95,14 +112,20 @@ export function UseDatum<T>(
    */
   const useDatum = () => {
     const [, forceRender] = useReducer((s) => s + 1, 0);
+    const id = useMemo(()=>{return String(state.subscriberCount++);},[]);
+    callbacks[id] = forceRender; // do not put inside useMemo. Causes late assignment of callbacks
 
     useEffect(() => {
-      const id = String(state.subscriberCount++);
-      callbacks[id] = forceRender;
+      if (trace) {
+        console.log(`UseDatum: Adding callback for ${trace}`);
+      }
       return () => {
+        if (trace) {
+          console.log(`UseDatum: Deleting callback for ${trace}`);
+        }
         delete callbacks[id];
       };
-    }, [forceRender]);
+    }, [id]);
 
     // The useState equivalent
     return [state.value, setDatum] as [T, typeof setDatum];
