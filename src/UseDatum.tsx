@@ -1,7 +1,7 @@
-// Copyright (c) 2020 Glenn R. Engel
+// Copyright (c) 2020-2023 Glenn R. Engel
 // SPDX-License-Identifier: ISC
 // https://opensource.org/licenses/ISC
-import { useReducer, useEffect, useMemo } from 'react';
+import { useReducer, useEffect } from 'react';
 import deepequal from 'fast-deep-equal/es6/react';
 
 /**
@@ -78,7 +78,15 @@ export function UseDatum<T>(
    * @param newValue The new value to apply.
    * @param force If true, skip equality checks and force an update.
    */
-  const setDatum = (newValue: T, force = false) => {
+  const setDatum = (
+    newValueOrFunction: T | ((prevState: T) => T),
+    force = false
+  ) => {
+    const newValue =
+      typeof newValueOrFunction === 'function'
+        ? newValueOrFunction(state.value)
+        : newValueOrFunction;
+
     let changed = force;
     if (!changed) {
       if (state.shallow || !isObject(newValue)) {
@@ -112,20 +120,28 @@ export function UseDatum<T>(
    */
   const useDatum = () => {
     const [, forceRender] = useReducer((s) => s + 1, 0);
-    const id = useMemo(()=>{return String(state.subscriberCount++);},[]);
-    callbacks[id] = forceRender; // do not put inside useMemo. Causes late assignment of callbacks
 
     useEffect(() => {
+      const id = String(state.subscriberCount++);
+      callbacks[id] = forceRender;
       if (trace) {
-        console.log(`UseDatum: Adding callback for ${trace}`);
+        console.log(
+          `UseDatum: Added callback for ${trace} ${id} #callbacks=${
+            Object.keys(callbacks).length
+          }`
+        );
       }
       return () => {
-        if (trace) {
-          console.log(`UseDatum: Deleting callback for ${trace}`);
-        }
         delete callbacks[id];
+        if (trace) {
+          console.log(
+            `UseDatum: Deleted callback for ${trace} ${id} #callbacks=${
+              Object.keys(callbacks).length
+            }`
+          );
+        }
       };
-    }, [id]);
+    }, []);
 
     // The useState equivalent
     return [state.value, setDatum] as [T, typeof setDatum];

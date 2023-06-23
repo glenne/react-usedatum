@@ -1,11 +1,12 @@
 {
   "name": "react-usedatum",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A stateful wrapper for globally shared react datum values.",
   "author": "Glenn R. Engel",
   "license": "ISC",
   "repository": "glenne/react-usedatum",
   "main": "dist/index.js",
+  "type": "module",
   "engines": {
     "node": ">=8",
     "npm": ">=5"
