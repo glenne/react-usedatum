@@ -1,6 +1,6 @@
 {
   "name": "react-usedatum",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A stateful wrapper for globally shared react datum values.",
   "author": "Glenn R. Engel",
   "license": "ISC",

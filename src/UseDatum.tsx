@@ -120,10 +120,9 @@ export function UseDatum<T>(
    */
   const useDatum = () => {
     const [, forceRender] = useReducer((s) => s + 1, 0);
-
+    const [id] = useReducer(() => '', String(state.subscriberCount++));
+    callbacks[id] = forceRender;
     useEffect(() => {
-      const id = String(state.subscriberCount++);
-      callbacks[id] = forceRender;
       if (trace) {
         console.log(
           `UseDatum: Added callback for ${trace} ${id} #callbacks=${
