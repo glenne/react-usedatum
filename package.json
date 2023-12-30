@@ -1,6 +1,6 @@
 {
   "name": "react-usedatum",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A stateful wrapper for globally shared react datum values.",
   "author": "Glenn R. Engel",
   "license": "ISC",
@@ -12,7 +12,9 @@
   },
   "scripts": {
     "build": "rollup -c",
-    "start": "rollup -c -w"
+    "start": "rollup -c -w",
+    "pubbeta": "npm run build && npm publish --tag beta",
+    "publish": "npm run build && npm publish"
   },
   "dependencies": {
     "fast-deep-equal": ">=3.1.3"

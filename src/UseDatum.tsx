@@ -1,7 +1,7 @@
 // Copyright (c) 2020-2023 Glenn R. Engel
 // SPDX-License-Identifier: ISC
 // https://opensource.org/licenses/ISC
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import deepequal from 'fast-deep-equal/es6/react';
 
 /**
@@ -55,6 +55,7 @@ export function UseDatum<T>(
   const state = {
     value: initialValue,
     subscriberCount: 0,
+    changeCount: 0,
     shallow: opts && opts.shallow ? Boolean(opts.shallow) : false,
   };
   const trace = opts && opts.trace;
@@ -104,6 +105,7 @@ export function UseDatum<T>(
       );
     }
     if (changed) {
+      state.changeCount++;
       const prior = state.value;
       state.value = newValue;
       if (onChange) {
@@ -120,9 +122,14 @@ export function UseDatum<T>(
    */
   const useDatum = () => {
     const [, forceRender] = useReducer((s) => s + 1, 0);
-    const [id] = useReducer(() => '', String(state.subscriberCount++));
-    callbacks[id] = forceRender;
+    const context = useRef({
+      forceRender,
+      id: String(state.subscriberCount++),
+      changeCount: state.changeCount,
+    });
     useEffect(() => {
+      const id = context.current.id;
+      callbacks[id] = forceRender;
       if (trace) {
         console.log(
           `UseDatum: Added callback for ${trace} ${id} #callbacks=${
@@ -130,6 +137,19 @@ export function UseDatum<T>(
           }`
         );
       }
+
+      if (state.changeCount > context.current.changeCount) {
+        // this happens if a value change occurs before useEffect is called
+        if (trace) {
+          console.log(
+            `UseDatum: Immediate change detected for ${trace} ${id} #callbacks=${
+              Object.keys(callbacks).length
+            }`
+          );
+        }
+        context.current.forceRender();
+      }
+
       return () => {
         delete callbacks[id];
         if (trace) {
